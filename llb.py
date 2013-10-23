@@ -45,7 +45,7 @@ def reply_to_submission(submission, mentioned_subs):
             reply += '/' + sub + ', '
     reply += '/' + mentioned_subs[-1]
     reply += '\n\n---\nLet me know if I need to try harder: /r/LazyLinkerBot'
-    #submission.add_comment(reply)
+    submission.add_comment(reply)
 
 # Holds the last submission we did not parse
 last_submission = None
