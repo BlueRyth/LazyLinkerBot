@@ -54,8 +54,6 @@ last_submission = None
 while True:
     try:
         for submission in reddit.get_new(place_holder=last_submission):
-            print('' + submission.fullname + ' ' + submission.title)
-
             # Give any posting bot a 20 second window to make a comment
             if abs(submission.created_utc - time.time()) < 20:
                 last_submission = submission
