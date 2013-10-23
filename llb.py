@@ -9,14 +9,17 @@ config.read("llb.cfg")
 username = config.get("Reddit", "username")
 password = config.get("Reddit", "password")
 
-reddit = praw.Reddit(user_agent="LazyLinkerBot by /u/blueryth/. Currently under\
-     development.")
+reddit = praw.Reddit(user_agent="LazyLinkerBot by /u/blueryth/")
 reddit.login(username, password)
 
 # Regex for xposts in submission titles
 xpost_re = re.compile('(\\br/\\w*)', re.IGNORECASE)
 
-# Constructs regex to look for title-mentioned subreddits in comments
+# Dictionary of subs where we've been rate-limited. We'll give them a chance to
+# cool down
+sleep_subs = {}
+
+# Constructs regex to look for any title-mentioned subreddits
 def build_sub_regex(subreddits):
     ret = '('
     # Loop if we're going through more than one
@@ -26,23 +29,53 @@ def build_sub_regex(subreddits):
     ret += '/' + subreddits[-1] + ')'
     return re.compile(ret)
 
+# Checks if mentioned subreddit exists
+def does_mention_exist(subreddit):
+    try:
+        # If the fetch fails, the subreddit does not exist. This is the
+        # PRAW way of doing it, apparently.
+        reddit.get_subreddit(subreddit, fetch=True)
+    except:
+        print('[Ignore] /r/' + subreddit + ' does not exist')
+        return False
+    else:
+        return True
 
-# Returns a list of subreddits that actually exist
+# Checks if subreddit mention is in the mentioned subreddit, hah!
+def is_self_mention(subreddit, submission):
+    if subreddit.lower() == submission.subreddit.display_name.lower():
+        print('[Ignore] /r/' + subreddit + ' is self-mentioned')
+        return True
+    return False
+
+# Checks if submission is a link to the mentioned subreddit
+def is_link_to_mention(subreddit, submission):
+    sub = '/r/' + subreddit
+    if sub in submission.url:
+        print('[Ignore] Submission is link to mention')
+        return True
+    return False
+
+# Checks if mention is too popular to be a useful link
+def is_mention_too_popular(subreddit):
+    try:
+        if reddit.get_subreddit(subreddit).subscribers > 100000:
+            print('[Ignore] /r/' + subreddit + ' is too popular')
+            return True
+    except:
+        pass
+    return False
+
+# Returns a list of subreddits that we could post about
 def determine_valid_subs(sub_mention, submission):
     ret = []
     for sub in sub_mention:
-        try:
-            # If the fetch fails, the subreddit does not exist
-            reddit.get_subreddit(sub[2:], fetch=True)
-        except Exception as e:
-            print('[Ignore] ' + sub + ' does not exist')
-        else:
-            if sub[2:].lower() != submission.subreddit.display_name.lower():
-                ret.append(sub)
-            else:
-                print('[Ignore] ' + sub + ' is self-mentioned')
+        if (does_mention_exist(sub[2:]) and 
+                not is_self_mention(sub[2:], submission) and
+                not is_link_to_mention(sub[2:], submission) and
+                not is_mention_too_popular(sub[2:])):
+            ret.append(sub)
     return ret
-
 
 # Checks a submission and its comments for mentions of subreddits
 def is_sub_mentioned(subreddits, submission):
@@ -60,7 +93,6 @@ def is_sub_mentioned(subreddits, submission):
 
     return False
 
-
 # Replies to a submission with link to mentioned subreddits
 def reply_to_submission(submission, mentioned_subs):
     reply = 'For the lazy: '
@@ -68,12 +100,23 @@ def reply_to_submission(submission, mentioned_subs):
         for sub in mentioned_subs[:1]:
             reply += '/' + sub + ', '
     reply += '/' + mentioned_subs[-1]
-    reply += '\n\n---\nLet me know if I need to try harder: /r/LazyLinkerBot'
+    reply += '\n\n---\nI provide direct links to lesser known cross-posted subs\
+            .\nLet me know if I need to try harder: /r/LazyLinkerBot'
     submission.add_comment(reply)
 
+# Checks if we're safe to post on a subreddit
+def can_post_to_subreddit(sub_name):
+    if sub_name in sleep_subs.keys() and time.time() < sleep_subs[sub_name]:
+            return False
+    return True
+
+# Sets rate limit on subreddit, so we won't try again
+def set_rate_limit(sub_name, cooldown):
+    sleep_subs[sub_name] = time.time() + cooldown
 
 # Holds the last submission we did not parse
 last_submission = None
+
 
 # Main execution loop
 while True:
@@ -82,12 +125,19 @@ while True:
         for submission in reddit.get_subreddit("all").get_new(
                 limit=1000, 
                 place_holder=last_submission):
-            # If we've seen it, skip it
+
+            sub_name = submission.subreddit.display_name
+            if not can_post_to_subreddit(sub_name):
+                last_submission = submission
+                continue
+
+            # If we've seen it, skip it. Sometimes we'll see the same submission
+            # without letting the cash clear, and we'll double comment =/
             if submission.fullname in seen:
                 continue
             seen.append(submission.fullname)
 
-            # Give any posting bot a 30 second window to make a comment
+            # Give anybody posting a 30 second window to make a link
             if abs(submission.created_utc - time.time()) < 30:
                 last_submission = submission
                 continue
@@ -97,18 +147,19 @@ while True:
             if title_hits:
                 print('[Submission] ' + 
                         submission.fullname + ' ' + submission.title + 
-                        ' in /r/' + submission.subreddit.display_name)
-                real_subs = determine_valid_subs(title_hits, submission)
-                if len(real_subs) > 0 and not is_sub_mentioned(
-                        real_subs, 
+                        ' in /r/' + sub_name)
+                valid_subs = determine_valid_subs(title_hits, submission)
+                if len(valid_subs) > 0 and not is_sub_mentioned(
+                        valid_subs, 
                         submission):
-                    print('[Reply] No mention in top comments; replying.')
-                    reply_to_submission(submission, real_subs)
-
-    except praw.errors.RateLimitExceeded as rle:
-        print('[WHOA] Moved too quickly; sleeping: ', rle.sleep_time)
-        time.sleep(rle.sleep_time)
-        continue
+                    print('[Reply] No mention; replying.')
+                    try:
+                        reply_to_submission(submission, valid_subs)
+                    except praw.errors.RateLimitExceeded as rle:
+                        print(
+                                '[WHOA] Moved too quickly on /r/' + 
+                                sub_name + ':', rle.sleep_time)
+                        set_rate_limit(sub_name, rle.sleep_time)
 
     except:
         raise
