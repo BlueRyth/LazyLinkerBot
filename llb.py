@@ -51,7 +51,7 @@ def is_self_mention(subreddit, submission):
 # Checks if submission is a link to the mentioned subreddit
 def is_link_to_mention(subreddit, submission):
     sub = '/r/' + subreddit
-    if sub in submission.url:
+    if sub.lower() in submission.url.lower():
         print('[Ignore] Submission is link to mention')
         return True
     return False
