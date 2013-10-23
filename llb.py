@@ -9,9 +9,8 @@ config.read("llb.cfg")
 username = config.get("Reddit", "username")
 password = config.get("Reddit", "password")
 
-reddit = praw.Reddit(user_agent="LazyLinkerBot by /u/blueryth/. Generates \
-    links to subreddits from submission titles where needed. Currently under \
-    development.")
+reddit = praw.Reddit(user_agent="LazyLinkerBot by /u/blueryth/. Currently under\
+     development.")
 reddit.login(username, password)
 
 # Regex for xposts in submission titles
@@ -75,7 +74,9 @@ last_submission = None
 while True:
     try:
         seen = []
-        for submission in reddit.get_new(limit=1000, place_holder=last_submission):
+        for submission in reddit.get_new(
+                limit=1000, 
+                place_holder=last_submission):
             # If we've seen it, skip it
             if submission.fullname in seen:
                 continue
@@ -89,12 +90,13 @@ while True:
             # Check titles for xposts
             title_hits = xpost_re.findall(submission.title)
             if title_hits:
-                print('Found sub mentions in title: '
-                    + submission.fullname + ' ' + submission.title)
+                print('Found sub mentions in title: ' + 
+                        submission.fullname + ' ' + submission.title)
                 real_subs = determine_valid_subs(title_hits)
-                if len(real_subs) > 0 and not is_sub_mentioned(real_subs, submission):
-                        print('\tNo mention in top comments; replying.')
-                        reply_to_submission(submission, real_subs)
+                if len(real_subs) > 0 and 
+                        not is_sub_mentioned(real_subs, submission):
+                    print('\tNo mention in top comments; replying.')
+                    reply_to_submission(submission, real_subs)
     except praw.errors.RateLimitExceeded as rle:
         print('Moved too quick, sleeping: ', rle.sleep_time)
         time.sleep(rle.sleep_time)
