@@ -27,7 +27,7 @@ def build_sub_regex(subreddits):
         for sub in subreddits[:1]:
             ret += '/' + sub + '|'
     ret += '/' + subreddits[-1] + ')'
-    return re.compile(ret)
+    return re.compile(ret, re.IGNORECASE)
 
 # Checks if mentioned subreddit exists
 def does_mention_exist(subreddit):
@@ -132,7 +132,7 @@ while True:
                 continue
 
             # If we've seen it, skip it. Sometimes we'll see the same submission
-            # without letting the cash clear, and we'll double comment =/
+            # without letting the cache clear, and we'll double comment =/
             if submission.fullname in seen:
                 continue
             seen.append(submission.fullname)
