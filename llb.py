@@ -27,6 +27,7 @@ def build_sub_regex(subreddits):
     ret += '/' + subreddits[-1] + ')'
     return re.compile(ret)
 
+
 # Returns a list of subreddits that actually exist
 def determine_valid_subs(sub_mention):
     ret = []
@@ -38,6 +39,25 @@ def determine_valid_subs(sub_mention):
             print('\t' + sub + ' does not exist')
     return ret
 
+
+# Checks a submission and its comments for mentions of subreddits
+def is_sub_mentioned(subreddits, submission):
+    sub_re = build_sub_regex(subreddits)
+    # Check submission body (could be self-post)
+    if sub_re.findall(submission.body):
+        print('\t\tFound sub mention in top level comments')
+        return True
+
+    # Check top level comments
+    for comment in submission.comments:
+        if sub_re.findall(comment.body):
+            print('\t\tFound sub mention in top level comments')
+            return True
+
+    return False
+
+
+# Replies to a submission with link to mentioned subreddits
 def reply_to_submission(submission, mentioned_subs):
     reply = 'For the lazy: '
     if len(mentioned_subs) > 1:
@@ -47,15 +67,16 @@ def reply_to_submission(submission, mentioned_subs):
     reply += '\n\n---\nLet me know if I need to try harder: /r/LazyLinkerBot'
     submission.add_comment(reply)
 
+
 # Holds the last submission we did not parse
 last_submission = None
 
 # Main execution loop
 while True:
     try:
-        for submission in reddit.get_new(place_holder=last_submission):
-            # Give any posting bot a 20 second window to make a comment
-            if abs(submission.created_utc - time.time()) < 20:
+        for submission in reddit.get_new(limit=100, place_holder=last_submission):
+            # Give any posting bot a 30 second window to make a comment
+            if abs(submission.created_utc - time.time()) < 30:
                 last_submission = submission
                 continue
 
@@ -65,23 +86,11 @@ while True:
                 print('\tFound sub mentions in title: '
                     + submission.fullname + ' ' + submission.title)
                 real_subs = determine_valid_subs(title_hits)
-                if len(real_subs) > 0:
-                    # Check top-level comments for any mentions
-                    mentioned = False
-                    comment_re = build_sub_regex(real_subs)
-                    for comment in submission.comments:
-                        if comment_re.findall(comment.body):
-                            mentioned = True
-                            print('\t\tFound sub mention in top level comments')
-                            break
-
-                    if not mentioned:
-                        print('\t\tNo mention, in top comments; replying.')
+                if len(real_subs) > 0 and not is_sub_mentioned(real_subs, submission):
+                        print('\t\tNo mention in top comments; replying.')
                         reply_to_submission(submission, real_subs)
-                else:
-                    print('\tNo mentioned subs exist')
 
     except Exception as e:
         print(e)
 
-    time.sleep(30)
+    time.sleep(60)
