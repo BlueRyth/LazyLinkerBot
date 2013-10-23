@@ -96,7 +96,7 @@ while True:
                         print('\t\tNo mention in top comments; replying.')
                         reply_to_submission(submission, real_subs)
     except praw.errors.RateLimitExceeded as rle:
-        print('Moved to quick, sleeping: ', rle.sleep_time)
+        print('Moved too quick, sleeping: ', rle.sleep_time)
         time.sleep(rle.sleep_time)
         continue
     except:
