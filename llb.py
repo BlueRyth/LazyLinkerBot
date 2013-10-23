@@ -101,7 +101,8 @@ def reply_to_submission(submission, mentioned_subs):
             reply += '/' + sub + ', '
     reply += '/' + mentioned_subs[-1]
     reply += '\n\n---\nI provide direct links to lesser known cross-posted \
-            subs.\n\nLet me know if I need to try harder: /r/LazyLinkerBot'
+            subs if one isn\'t provided.\n\nLet me know if I need to try \
+            harder: /r/LazyLinkerBot'
     submission.add_comment(reply)
 
 # Checks if we're safe to post on a subreddit
