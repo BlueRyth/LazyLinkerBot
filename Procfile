@@ -1,1 +1,1 @@
-worker: py llb.py
+worker: python llb.py
