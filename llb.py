@@ -45,13 +45,13 @@ def is_sub_mentioned(subreddits, submission):
     sub_re = build_sub_regex(subreddits)
     # Check submission body (could be self-post)
     if submission.is_self and sub_re.findall(submission.selftext):
-        print('\t\tFound sub mention in submission self text')
+        print('\tFound sub mention in submission self text')
         return True
 
     # Check top level comments
     for comment in submission.comments:
         if sub_re.findall(comment.body):
-            print('\t\tFound sub mention in top level comments')
+            print('\tFound sub mention in top level comments')
             return True
 
     return False
@@ -89,11 +89,11 @@ while True:
             # Check titles for xposts
             title_hits = xpost_re.findall(submission.title)
             if title_hits:
-                print('\tFound sub mentions in title: '
+                print('Found sub mentions in title: '
                     + submission.fullname + ' ' + submission.title)
                 real_subs = determine_valid_subs(title_hits)
                 if len(real_subs) > 0 and not is_sub_mentioned(real_subs, submission):
-                        print('\t\tNo mention in top comments; replying.')
+                        print('\tNo mention in top comments; replying.')
                         reply_to_submission(submission, real_subs)
     except praw.errors.RateLimitExceeded as rle:
         print('Moved too quick, sleeping: ', rle.sleep_time)
