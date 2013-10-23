@@ -45,7 +45,7 @@ def is_sub_mentioned(subreddits, submission):
     sub_re = build_sub_regex(subreddits)
     # Check submission body (could be self-post)
     if submission.is_self and sub_re.findall(submission.selftext):
-        print('\t\tFound sub mention in top level comments')
+        print('\t\tFound sub mention in submission self text')
         return True
 
     # Check top level comments
@@ -75,11 +75,11 @@ last_submission = None
 while True:
     try:
         seen = []
-        for submission in reddit.get_new(limit=100, place_holder=last_submission):
+        for submission in reddit.get_new(limit=1000, place_holder=last_submission):
             # If we've seen it, skip it
-            if submission in seen:
+            if submission.fullname in seen:
                 continue
-            seen.append(submission)
+            seen.append(submission.fullname)
 
             # Give any posting bot a 30 second window to make a comment
             if abs(submission.created_utc - time.time()) < 30:
@@ -95,8 +95,11 @@ while True:
                 if len(real_subs) > 0 and not is_sub_mentioned(real_subs, submission):
                         print('\t\tNo mention in top comments; replying.')
                         reply_to_submission(submission, real_subs)
-
-    except Exception as e:
-        print(e)
+    except praw.errors.RateLimitExceeded as rle:
+        print('Moved to quick, sleeping: ', rle.sleep_time)
+        time.sleep(rle.sleep_time)
+        continue
+    except:
+        raise
 
     time.sleep(60)
