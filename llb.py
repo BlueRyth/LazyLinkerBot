@@ -28,14 +28,19 @@ def build_sub_regex(subreddits):
 
 
 # Returns a list of subreddits that actually exist
-def determine_valid_subs(sub_mention):
+def determine_valid_subs(sub_mention, submission):
     ret = []
     for sub in sub_mention:
         try:
+            # If the fetch fails, the subreddit does not exist
             reddit.get_subreddit(sub[2:], fetch=True)
-            ret.append(sub)
         except Exception as e:
             print('\t' + sub + ' does not exist')
+        else:
+            if sub[2:].lower() != submission.subreddit.display_name.lower():
+                ret.append(sub)
+            else:
+                print('\t' + sub + ' is self-mentioned')
     return ret
 
 
@@ -91,16 +96,20 @@ while True:
             title_hits = xpost_re.findall(submission.title)
             if title_hits:
                 print('Found sub mentions in title: ' + 
-                        submission.fullname + ' ' + submission.title)
-                real_subs = determine_valid_subs(title_hits)
-                if len(real_subs) > 0 and 
-                        not is_sub_mentioned(real_subs, submission):
+                        submission.fullname + ' ' + submission.title + 
+                        ' in /r/' + submission.subreddit.display_name)
+                real_subs = determine_valid_subs(title_hits, submission)
+                if len(real_subs) > 0 and not is_sub_mentioned(
+                        real_subs, 
+                        submission):
                     print('\tNo mention in top comments; replying.')
                     reply_to_submission(submission, real_subs)
+
     except praw.errors.RateLimitExceeded as rle:
-        print('Moved too quick, sleeping: ', rle.sleep_time)
+        print('Moved too quickly; sleeping: ', rle.sleep_time)
         time.sleep(rle.sleep_time)
         continue
+
     except:
         raise
 
