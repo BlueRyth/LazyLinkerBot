@@ -44,7 +44,7 @@ def determine_valid_subs(sub_mention):
 def is_sub_mentioned(subreddits, submission):
     sub_re = build_sub_regex(subreddits)
     # Check submission body (could be self-post)
-    if sub_re.findall(submission.body):
+    if submission.is_self and sub_re.findall(submission.selftext):
         print('\t\tFound sub mention in top level comments')
         return True
 
@@ -74,7 +74,13 @@ last_submission = None
 # Main execution loop
 while True:
     try:
+        seen = []
         for submission in reddit.get_new(limit=100, place_holder=last_submission):
+            # If we've seen it, skip it
+            if submission in seen:
+                continue
+            seen.append(submission)
+
             # Give any posting bot a 30 second window to make a comment
             if abs(submission.created_utc - time.time()) < 30:
                 last_submission = submission
