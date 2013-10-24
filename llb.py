@@ -5,11 +5,11 @@ import praw
 
 # Doing a little bit of setup, here
 config = configparser.ConfigParser()
-config.read("llb.cfg")
-username = config.get("Reddit", "username")
-password = config.get("Reddit", "password")
+config.read('llb.cfg')
+username = config.get('LazyLinkerBot', 'username')
+password = config.get('LazyLinkerBot', 'password')
 
-reddit = praw.Reddit(user_agent="LazyLinkerBot by /u/blueryth/")
+reddit = praw.Reddit(user_agent='LazyLinkerBot by /u/blueryth/')
 reddit.login(username, password)
 
 # Regex for xposts in submission titles
@@ -18,6 +18,9 @@ xpost_re = re.compile('(\\br/\\w*)', re.IGNORECASE)
 # Dictionary of subs where we've been rate-limited. We'll give them a chance to
 # cool down
 sleep_subs = {}
+
+# Maximum number of subscribers to repost a subreddit
+max_sub_size = config.get('LazyLinkerBot', 'maxsubsize')
 
 # Constructs regex to look for any title-mentioned subreddits
 def build_sub_regex(subreddits):
@@ -59,7 +62,7 @@ def is_link_to_mention(subreddit, submission):
 # Checks if mention is too popular to be a useful link
 def is_mention_too_popular(subreddit):
     try:
-        if reddit.get_subreddit(subreddit).subscribers > 100000:
+        if reddit.get_subreddit(subreddit).subscribers > max_sub_size:
             print('[Ignore] /r/' + subreddit + ' is too popular')
             return True
     except:
@@ -118,12 +121,11 @@ def set_rate_limit(sub_name, cooldown):
 # Holds the last submission we did not parse
 last_submission = None
 
-
 # Main execution loop
 while True:
     try:
         seen = []
-        for submission in reddit.get_subreddit("all").get_new(
+        for submission in reddit.get_subreddit('all').get_new(
                 limit=1000, 
                 place_holder=last_submission):
 
