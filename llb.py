@@ -19,6 +19,9 @@ xpost_re = re.compile('(\\br/\\w*)', re.IGNORECASE)
 # cool down
 sleep_subs = {}
 
+# Banned subs. Some people don't love me :(
+banned_subs = []
+
 # Maximum number of subscribers to repost a subreddit
 max_sub_size = config.get('LazyLinkerBot', 'maxsubsize')
 
@@ -62,11 +65,12 @@ def is_link_to_mention(subreddit, submission):
 # Checks if mention is too popular to be a useful link
 def is_mention_too_popular(subreddit):
     try:
-        if reddit.get_subreddit(subreddit).subscribers > max_sub_size:
+        if reddit.get_subreddit(subreddit).subscribers > int(max_sub_size):
             print('[Ignore] /r/' + subreddit + ' is too popular')
             return True
-    except:
-        pass
+    except Exception as e:
+        print('[Ignore] /r/' + subreddit + ', problem determining popularity')
+        return True
     return False
 
 # Returns a list of subreddits that we could post about
@@ -101,18 +105,29 @@ def reply_to_submission(submission, mentioned_subs):
     reply = 'For the lazy: '
     if len(mentioned_subs) > 1:
         for sub in mentioned_subs[:1]:
-            reply += '/' + sub + ', '
-    reply += '/' + mentioned_subs[-1]
+            reply += '/' + sub.lower() + ', '
+    reply += '/' + mentioned_subs[-1].lower()
     reply += '\n\n---\nI provide direct links to lesser known cross-posted \
             subs if one isn\'t provided.\n\nLet me know if I need to try \
             harder: /r/LazyLinkerBot'
-    submission.add_comment(reply)
+    #submission.add_comment(reply)
 
 # Checks if we're safe to post on a subreddit
 def can_post_to_subreddit(sub_name):
-    if sub_name in sleep_subs.keys() and time.time() < sleep_subs[sub_name]:
+    if (not sub_name in banned_subs and
+        sub_name in sleep_subs.keys() and 
+        time.time() < sleep_subs[sub_name]):
             return False
     return True
+
+# Checks if we're banned on the subreddit
+def is_banned(sub_name):
+    if reddit.get_subreddit(sub_name).user_is_banned:
+        if not sub_name in banned_subs:
+            print('[BANNED] We are banned from /r/' + sub_name)
+            banned_subs.append(sub_name)
+        return True
+    return False
 
 # Sets rate limit on subreddit, so we won't try again
 def set_rate_limit(sub_name, cooldown):
@@ -152,9 +167,9 @@ while True:
                         submission.fullname + ' ' + submission.title + 
                         ' in /r/' + sub_name)
                 valid_subs = determine_valid_subs(title_hits, submission)
-                if len(valid_subs) > 0 and not is_sub_mentioned(
-                        valid_subs, 
-                        submission):
+                if (len(valid_subs) > 0 and 
+                        not is_sub_mentioned(valid_subs,submission) and
+                        not is_banned(sub_name)):
                     print('[Reply] No mention; replying.')
                     try:
                         reply_to_submission(submission, valid_subs)
