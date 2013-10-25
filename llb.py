@@ -107,9 +107,9 @@ def reply_to_submission(submission, mentioned_subs):
         for sub in mentioned_subs[:1]:
             reply += '/' + sub.lower() + ', '
     reply += '/' + mentioned_subs[-1].lower()
-    reply += '\n\n---\nI provide direct links to lesser known subs mentio\
-            ned in the title if one isn\'t provided.\n\nLet me know if I \
-            need to try harder: /r/LazyLinkerBot'
+    reply += '\n\n---\nI provide direct links to lesser known subs \
+            mentionned in the title if one isn\'t provided.\n\nLet me know if \
+            I need to try harder: /r/LazyLinkerBot'
     submission.add_comment(reply)
 
 # Checks if we're safe to post on a subreddit
