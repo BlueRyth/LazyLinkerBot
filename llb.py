@@ -108,7 +108,7 @@ def reply_to_submission(submission, mentioned_subs):
             reply += '/' + sub.lower() + ', '
     reply += '/' + mentioned_subs[-1].lower()
     reply += '\n\n---\nI provide direct links to lesser known subs \
-            mentionned in the title if one isn\'t provided.\n\nLet me know if \
+            mentioned in the title if one isn\'t provided.\n\nLet me know if \
             I need to try harder: /r/LazyLinkerBot'
     submission.add_comment(reply)
 
