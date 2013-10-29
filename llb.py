@@ -144,7 +144,8 @@ def reply_to_submission(submission, mentioned_subs):
             reply_subs += "/" + sub.lower() + ", "
     reply_subs += "/" + mentioned_subs[-1].lower()
     try:
-        submission.add_comment(reply.format(subs=reply_subs))
+        comment = submission.add_comment(reply.format(subs=reply_subs))
+        comment.clear_vote()
     except Exception:
         raise
 
