@@ -24,12 +24,15 @@ reply = "For the lazy: {subs}\n\n---\nI provide direct links to lesser known"\
         " subs mentioned in the title if one isn\'t already provided.\n\nLet"\
         " me know if I need to try harder: /r/LazyLinkerBot"
 
+# Logins
+username = os.getenv("REDDIT_USERNAME")
+password = os.getenv("REDDIT_PASSWORD")
+if (username is None or password is None):
+    raise Exception("Expecting reddit username and password in env vars")
+
 # Setup PRAW reddit object
 reddit = praw.Reddit(user_agent="LazyLinkerBot by /u/blueryth/")
-if (not os.environ.has_key("REDDIT_USERNAME") or 
-        not os.environ.has_key("REDDIT_PASSWORD")):
-    raise Exception("Expecting reddit username and password in env vars")
-reddit.login(os.environ["REDDIT_USERNAME"], os.environ["REDDIT_PASSWORD"])
+reddit.login(username, password)
 
 # Regex for xposts in submission titles
 xpost_re = re.compile("(\\br/\\w*)", re.IGNORECASE)
