@@ -34,6 +34,3 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
-
-# Ignore config
-llb.cfg
