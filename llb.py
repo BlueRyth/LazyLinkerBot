@@ -1,3 +1,4 @@
+import os
 import re
 import time
 import configparser
@@ -27,7 +28,10 @@ reply = "For the lazy: {subs}\n\n---\nI provide direct links to lesser known"\
 
 # Setup PRAW reddit object
 reddit = praw.Reddit(user_agent="LazyLinkerBot by /u/blueryth/")
-reddit.login(username, password)
+if (not os.environ.has_key("REDDIT_USERNAME") or 
+        not os.environ.has_key("REDDIT_PASSWORD")):
+    raise Exception("Expecting reddit username and password in env vars")
+reddit.login(os.environ["REDDIT_USERNAME"], os.environ["REDDIT_PASSWORD"])
 
 # Regex for xposts in submission titles
 xpost_re = re.compile("(\\br/\\w*)", re.IGNORECASE)
