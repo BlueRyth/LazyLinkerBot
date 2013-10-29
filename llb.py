@@ -8,8 +8,6 @@ import praw
 # Doing a little bit of setup, here
 config = configparser.ConfigParser()
 config.read("llb.cfg")
-username = config.get("LazyLinkerBot", "username")
-password = config.get("LazyLinkerBot", "password")
 
 # Maximum number of subscribers to repost a subreddit
 max_sub_size = config.get("LazyLinkerBot", "maxsubsize")
