@@ -10,7 +10,7 @@ config = configparser.ConfigParser()
 config.read("llb.cfg")
 
 # Maximum number of subscribers to repost a subreddit
-max_sub_size = config.getint("LazyLinkerBot", "maxsubsize")
+max_sub_size = config.get("LazyLinkerBot", "maxsubsize")
 
 # Log formats
 xpost_log = config.get("LazyLinkerBot", "xpostlog")
@@ -102,7 +102,7 @@ def is_link_to_mention(subreddit,   submission):
 
 def is_mention_too_popular(subreddit):
     """Checks if subreddit is too popular to be a useful link"""
-    if reddit.get_subreddit(subreddit).subscribers > max_sub_size:
+    if reddit.get_subreddit(subreddit).subscribers > int(max_sub_size):
         log_submission_ignore("Subreddit is too popular")
         return True
     return False
@@ -125,13 +125,8 @@ def is_sub_mentioned(subreddits, submission):
     """Checks for mentions of subreddits in a submission and its comments"""
     sub_re = build_sub_regex(subreddits)
     # Check submission body (could be self-post)
-    if submission.is_self and not sub_re.findall(submission.selftext) is None:
+    if submission.is_self and sub_re.findall(submission.selftext):
         log_submission_ignore("Mentioned subreddit in submission self text")
-        return True
-    # Check sidebar
-    if (not submission.subreddit.description is None and
-            not sub_re.findall(submission.subreddit.description) is None):
-        log_submission_ignore("Mentioned subreddit in in submission sidebar")
         return True
     # Check top level comments
     for comment in submission.comments:
@@ -178,7 +173,6 @@ def set_rate_limit(sub_name, cooldown):
     """Sets cooldown on a subreddit for the duration of a rate limit"""
     sleep_subs[sub_name] = time.time() + cooldown
 
-
 def lazy_linker_duties():
     """Performs the lazy linker duties of checking submissions for xposts"""
     global last_submission
@@ -220,7 +214,6 @@ def lazy_linker_duties():
                     print(ratelimit_log.format(
                         subreddit=submission.subreddit))
                     set_rate_limit(sub_name, rle.sleep_time)
-
 
 # Main execution loop
 while True:
